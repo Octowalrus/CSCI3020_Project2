@@ -1,0 +1,41 @@
+services:
+  mongodb:
+    image: mongo:8.0
+    container_name: maui_mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: src/Api/Dockerfile
+    container_name: maui_api
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      Mongo__ConnectionString: mongodb://mongodb:27017
+      Mongo__DatabaseName: maui_system
+      Mongo__CollectionName: items
+    ports:
+      - "8080:8080"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  maui-builder:
+    build:
+      context: .
+      dockerfile: src/MauiApp/Dockerfile
+    image: maui-app-template:latest
+    profiles: ["maui"]
+
+volumes:
+  mongodb_data:

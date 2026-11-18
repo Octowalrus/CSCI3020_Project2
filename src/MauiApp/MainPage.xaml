@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="MauiApp.MainPage">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="30" Spacing="20">
+            <Label Text="MongoDB MAUI System"
+                   Style="{StaticResource Headline}"
+                   SemanticProperties.HeadingLevel="Level1" />
+            <Label Text="API status" Style="{StaticResource SubHeadline}" />
+            <Label x:Name="StatusLabel" Text="Not checked" />
+            <Entry x:Name="ItemNameEntry" Placeholder="Item name" />
+            <Entry x:Name="ItemDescriptionEntry" Placeholder="Description" />
+            <Button Text="Create item" Clicked="OnCreateItemClicked"
+                    HorizontalOptions="Fill" />
+            <Button Text="Check API" Clicked="OnCheckApiClicked"
+                    HorizontalOptions="Fill" />
+            <CollectionView x:Name="ItemsView">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <VerticalStackLayout Padding="8">
+                            <Label Text="{Binding Name}" FontAttributes="Bold" />
+                            <Label Text="{Binding Description}" />
+                        </VerticalStackLayout>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>
