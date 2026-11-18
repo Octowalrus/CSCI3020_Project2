@@ -34,6 +34,11 @@ dotnet build src/MauiApp/MauiApp.csproj -f net10.0-windows10.0.19041.0
 dotnet build src/MauiApp/MauiApp.csproj -t:Run -f net10.0-android
 ```
 
+This will actually run the UI
+```powershell
+dotnet run --project src/MauiApp/MauiApp.csproj -f net10.0-windows10.0.19041.0
+```
+
 The MAUI app calls the API. `10.0.2.2:8080` is the Android Emulator alias for the Windows host. Windows and desktop development should change `BaseAddress` in `MainPage.xaml.cs` to `http://localhost:8080`.
 
 To build an Android MAUI package inside Docker:
