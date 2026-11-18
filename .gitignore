@@ -1,0 +1,94 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio
+.vs/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+*.vcproj.*
+*.dbmdl
+*.jfm
+
+# Visual Studio / Rider generated files
+Generated\ Files/
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+.idea/
+
+# NuGet
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+*.nuget.props
+*.nuget.targets
+project.lock.json
+
+# Test results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.trx
+*.coverage
+*.coveragexml
+
+# MAUI / mobile platforms
+*.apk
+*.aab
+*.app
+*.appx
+*.appxbundle
+*.msix
+*.msixbundle
+*.ipa
+*.dSYM/
+*.xcarchive/
+
+# Android
+**/Platforms/Android/Resources/values/google_maps_api.xml
+local.properties
+*.keystore
+*.jks
+
+# macOS
+.DS_Store
+*.swp
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Environment and secrets
+.env
+.env.*
+*.env
+secrets.json
+*.pfx
+*.p12
+
+# Docker
+docker-compose.override.yml
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+~$*
