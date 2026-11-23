@@ -41,21 +41,9 @@ public partial class MainPage : ContentPage
 		try
 		{
 			StatusLabel.Text = "Loading...";
-			var query = new List<string>
-			{
-				$"page={_page}",
-				$"pageSize={PageSize}"
-			};
-
+			var allItems = await _httpClient.GetFromJsonAsync<List<Item>>("/api/items")
+				?? [];
 			var search = SearchEntry.Text?.Trim();
-			if (!string.IsNullOrWhiteSpace(search))
-				query.Add($"search={Uri.EscapeDataString(search)}");
-
-			if (DescriptionFilterPicker.SelectedIndex == 1)
-				query.Add("hasDescription=true");
-			else if (DescriptionFilterPicker.SelectedIndex == 2)
-				query.Add("hasDescription=false");
-
 			var sort = SortPicker.SelectedIndex switch
 			{
 				1 => "name-desc",
@@ -63,20 +51,55 @@ public partial class MainPage : ContentPage
 				3 => "oldest",
 				_ => "name"
 			};
-			query.Add($"sort={sort}");
 
-			var result = await _httpClient.GetFromJsonAsync<PagedResult<Item>>(
-				"/api/items/search?" + string.Join("&", query));
-			if (result is null)
-				throw new InvalidOperationException("The API returned no data.");
+			IEnumerable<Item> filtered = allItems;
+			if (!string.IsNullOrWhiteSpace(search))
+				filtered = filtered.Where(item =>
+					item.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+					(item.Description?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false));
+			if (DescriptionFilterPicker.SelectedIndex == 1)
+				filtered = filtered.Where(item => !string.IsNullOrWhiteSpace(item.Description));
+			else if (DescriptionFilterPicker.SelectedIndex == 2)
+				filtered = filtered.Where(item => string.IsNullOrWhiteSpace(item.Description));
 
-			_page = result.Page;
-			_totalPages = result.TotalPages;
-			ItemsView.ItemsSource = result.Items;
+			filtered = sort switch
+			{
+				"name-desc" => filtered.OrderByDescending(item => item.Name),
+				"newest" => filtered.OrderByDescending(item => item.Id),
+				"oldest" => filtered.OrderBy(item => item.Id),
+				_ => filtered.OrderBy(item => item.Name)
+			};
+
+			var grouped = filtered
+				.GroupBy(item => new { item.Name, item.Description, item.Price })
+				.Select(group => new GroupedItem
+				{
+					Id = group.First().Id,
+					Name = group.Key.Name,
+					Description = group.Key.Description,
+					Price = group.Key.Price,
+					StockCount = group.Count()
+				})
+				.OrderBy(item => item.Name)
+				.ToList();
+
+			if (sort == "name-desc")
+				grouped = grouped.OrderByDescending(item => item.Name).ToList();
+			else if (sort == "newest")
+				grouped = grouped.OrderByDescending(item => item.Id).ToList();
+			else if (sort == "oldest")
+				grouped = grouped.OrderBy(item => item.Id).ToList();
+
+			_totalPages = Math.Max(1, (int)Math.Ceiling(grouped.Count / (double)PageSize));
+			_page = Math.Clamp(_page, 1, _totalPages);
+			ItemsView.ItemsSource = grouped
+				.Skip((_page - 1) * PageSize)
+				.Take(PageSize)
+				.ToList();
 			PageLabel.Text = $"Page {_page} of {_totalPages}";
 			PreviousButton.IsEnabled = _page > 1;
 			NextButton.IsEnabled = _page < _totalPages;
-			StatusLabel.Text = $"Connected - {result.TotalCount} item(s)";
+			StatusLabel.Text = $"Connected - {grouped.Sum(item => item.StockCount)} item(s), {grouped.Count} grouped";
 		}
 		catch (Exception exception)
 		{
@@ -163,7 +186,7 @@ public partial class MainPage : ContentPage
 
 	private void OnEditItemClicked(object sender, EventArgs e)
 	{
-		if (sender is not Button { CommandParameter: Item item })
+		if (sender is not Button { CommandParameter: GroupedItem item })
 			return;
 
 		_editingId = item.Id;
@@ -175,7 +198,7 @@ public partial class MainPage : ContentPage
 
 	private async void OnDeleteItemClicked(object sender, EventArgs e)
 	{
-		if (sender is not Button { CommandParameter: Item item } || item.Id is null)
+		if (sender is not Button { CommandParameter: GroupedItem item } || item.Id is null)
 			return;
 
 		var confirmed = await DisplayAlertAsync(
@@ -197,6 +220,30 @@ public partial class MainPage : ContentPage
 		catch (Exception exception)
 		{
 			StatusLabel.Text = $"Delete failed: {exception.Message}";
+		}
+	}
+
+	private async void OnAddCopyClicked(object sender, EventArgs e)
+	{
+		if (sender is not Button { CommandParameter: GroupedItem item })
+			return;
+
+		try
+		{
+			var copy = new Item
+			{
+				Name = item.Name,
+				Description = item.Description,
+				Price = item.Price
+			};
+			var response = await _httpClient.PostAsJsonAsync("/api/items", copy);
+			response.EnsureSuccessStatusCode();
+			StatusLabel.Text = $"Added one copy of {item.Name}";
+			await LoadItemsAsync();
+		}
+		catch (Exception exception)
+		{
+			StatusLabel.Text = $"Add copy failed: {exception.Message}";
 		}
 	}
 
@@ -265,5 +312,17 @@ public sealed class PagedResult<T>
 	public int Page { get; set; }
 	public int PageSize { get; set; }
 	public int TotalPages { get; set; }
+}
+
+public sealed class GroupedItem
+{
+	public string? Id { get; init; }
+	public string Name { get; init; } = string.Empty;
+	public string? Description { get; init; }
+	public decimal Price { get; init; }
+	public int StockCount { get; init; }
+	public string DisplayName => $"{Name} (x{StockCount})";
+	public string DisplayPrice =>
+		Price.ToString("C", System.Globalization.CultureInfo.CurrentCulture);
 }
 

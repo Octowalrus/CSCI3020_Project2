@@ -50,14 +50,17 @@
                     <DataTemplate>
                         <Border StrokeShape="RoundRectangle 8" Padding="10" Margin="0,4">
                             <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="4">
-                                <Label Text="{Binding Name}" FontAttributes="Bold" />
+                                <Label Text="{Binding DisplayName}" FontAttributes="Bold" />
                                 <Label Grid.Row="1" Text="{Binding Description}" />
                                 <Label Grid.Row="2" Text="{Binding DisplayPrice}" />
-                                <Grid Grid.Row="3" ColumnDefinitions="*,*" ColumnSpacing="8">
+                                <Grid Grid.Row="3" ColumnDefinitions="*,*,*" ColumnSpacing="6">
                                     <Button Grid.Column="0" Text="Edit"
                                             Clicked="OnEditItemClicked"
                                             CommandParameter="{Binding}" />
-                                    <Button Grid.Column="1" Text="Delete"
+                                    <Button Grid.Column="1" Text="Add copy"
+                                            Clicked="OnAddCopyClicked"
+                                            CommandParameter="{Binding}" />
+                                    <Button Grid.Column="2" Text="Delete"
                                             Clicked="OnDeleteItemClicked"
                                             CommandParameter="{Binding}" />
                                 </Grid>

@@ -16,6 +16,7 @@ public partial class StorePage : ContentPage
 	};
 
 	private readonly ObservableCollection<CartItem> _cart = [];
+	private readonly List<Item> _stock = [];
 	private CancellationTokenSource? _lookupTimer;
 	private bool _isLoading;
 
@@ -50,7 +51,9 @@ public partial class StorePage : ContentPage
 				products = result?.Items ?? [];
 			}
 
-			ProductsView.ItemsSource = products;
+			_stock.Clear();
+			_stock.AddRange(products);
+			ProductsView.ItemsSource = GroupProducts(products);
 			StoreStatusLabel.Text = string.IsNullOrWhiteSpace(search)
 				? $"{products.Count} product(s) available"
 				: $"{products.Count} result(s) for \"{search.Trim()}\"";
@@ -95,20 +98,41 @@ public partial class StorePage : ContentPage
 
 	private void OnAddToCartClicked(object sender, EventArgs e)
 	{
-		if (sender is not Button { CommandParameter: Item product } || product.Id is null)
+		if (sender is not Button { CommandParameter: StockGroup product })
 			return;
-		if (_cart.Any(item => item.Id == product.Id))
+
+		var availableItem = _stock.FirstOrDefault(item =>
+			item.Name == product.Name &&
+			item.Description == product.Description &&
+			item.Price == product.Price &&
+			!_cart.Any(line =>
+				line.StockItemIds.Contains(item.Id ?? string.Empty)));
+		if (availableItem?.Id is null)
 		{
-			StoreStatusLabel.Text = $"{product.Name} is already in the cart.";
+			StoreStatusLabel.Text = $"No more copies of {product.Name} are available.";
 			return;
 		}
 
-		_cart.Add(new CartItem
+		var existing = _cart.FirstOrDefault(item =>
+			item.Name == product.Name &&
+			item.Description == product.Description &&
+			item.Price == product.Price);
+		if (existing is null)
 		{
-			Id = product.Id,
-			Name = product.Name,
-			Price = product.Price
-		});
+			_cart.Add(new CartItem
+			{
+				Name = product.Name,
+				Description = product.Description,
+				Price = product.Price,
+				StockItemIds = [availableItem.Id]
+			});
+		}
+		else
+		{
+			existing.StockItemIds.Add(availableItem.Id);
+		}
+		CartView.ItemsSource = null;
+		CartView.ItemsSource = _cart;
 		UpdateCart();
 	}
 
@@ -117,7 +141,11 @@ public partial class StorePage : ContentPage
 		if (sender is not Button { CommandParameter: CartItem cartItem })
 			return;
 
-		_cart.Remove(cartItem);
+		cartItem.StockItemIds.RemoveAt(cartItem.StockItemIds.Count - 1);
+		if (cartItem.StockItemIds.Count == 0)
+			_cart.Remove(cartItem);
+		CartView.ItemsSource = null;
+		CartView.ItemsSource = _cart;
 		UpdateCart();
 	}
 
@@ -126,10 +154,11 @@ public partial class StorePage : ContentPage
 		if (_cart.Count == 0)
 			return;
 
-		var total = _cart.Sum(item => item.Price);
+		var quantity = _cart.Sum(item => item.Quantity);
+		var total = _cart.Sum(item => item.Price * item.Quantity);
 		var confirmed = await DisplayAlertAsync(
 			"Complete checkout",
-			$"Purchase {_cart.Count} item(s) for {total.ToString("C", CultureInfo.CurrentCulture)}?",
+			$"Purchase {quantity} item(s) for {total.ToString("C", CultureInfo.CurrentCulture)}?",
 			"Checkout",
 			"Cancel");
 		if (!confirmed)
@@ -139,7 +168,12 @@ public partial class StorePage : ContentPage
 		{
 			var response = await _httpClient.PostAsJsonAsync(
 				"/api/items/checkout",
-				new CheckoutRequest { ItemIds = _cart.Select(item => item.Id).ToList() });
+				new CheckoutRequest
+				{
+					ItemIds = _cart
+						.SelectMany(item => item.StockItemIds)
+						.ToList()
+				});
 			response.EnsureSuccessStatusCode();
 			var result = await response.Content.ReadFromJsonAsync<CheckoutResult>();
 
@@ -157,19 +191,56 @@ public partial class StorePage : ContentPage
 
 	private void UpdateCart()
 	{
-		var total = _cart.Sum(item => item.Price);
+		var total = _cart.Sum(item => item.Price * item.Quantity);
 		CartTotalLabel.Text = $"Total: {total.ToString("C", CultureInfo.CurrentCulture)}";
 		CheckoutButton.IsEnabled = _cart.Count > 0;
+	}
+
+	private static IReadOnlyList<StockGroup> GroupProducts(IEnumerable<Item> products)
+	{
+		return products
+			.Where(item => item.Id is not null)
+			.GroupBy(item => new
+			{
+				item.Name,
+				item.Description,
+				item.Price
+			})
+			.Select(group => new StockGroup
+			{
+				Name = group.Key.Name,
+				Description = group.Key.Description,
+				Price = group.Key.Price,
+				StockCount = group.Count()
+			})
+			.OrderBy(item => item.Name)
+			.ToList();
 	}
 }
 
 public sealed class CartItem
 {
-	public string Id { get; init; } = string.Empty;
 	public string Name { get; init; } = string.Empty;
+	public string? Description { get; init; }
 	public decimal Price { get; init; }
+	public List<string> StockItemIds { get; init; } = [];
+	public int Quantity => StockItemIds.Count;
 	public string DisplayPrice =>
 		Price.ToString("C", CultureInfo.CurrentCulture);
+	public string CartText =>
+		$"{Quantity} x {DisplayPrice} = {(Price * Quantity).ToString("C", CultureInfo.CurrentCulture)}";
+}
+
+public sealed class StockGroup
+{
+	public string Name { get; init; } = string.Empty;
+	public string? Description { get; init; }
+	public decimal Price { get; init; }
+	public int StockCount { get; init; }
+	public string DisplayPrice =>
+		Price.ToString("C", CultureInfo.CurrentCulture);
+	public string StockText =>
+		$"{StockCount} in stock";
 }
 
 public sealed class CheckoutRequest
