@@ -23,7 +23,7 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       Mongo__ConnectionString: mongodb://mongodb:27017
       Mongo__DatabaseName: maui_system
-      Mongo__CollectionName: items
+      Mongo__CollectionName: GameProducts
     ports:
       - "8080:8080"
     depends_on:

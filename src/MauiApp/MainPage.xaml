@@ -4,28 +4,77 @@
              x:Class="MauiApp.MainPage">
 
     <ScrollView>
-        <VerticalStackLayout Padding="30" Spacing="20">
+        <VerticalStackLayout Padding="20" Spacing="12">
             <Label Text="MongoDB MAUI System"
                    Style="{StaticResource Headline}"
                    SemanticProperties.HeadingLevel="Level1" />
-            <Label Text="API status" Style="{StaticResource SubHeadline}" />
-            <Label x:Name="StatusLabel" Text="Not checked" />
+            <Label x:Name="StatusLabel" Text="Loading..." />
+
+            <Label Text="Item editor" FontAttributes="Bold" />
             <Entry x:Name="ItemNameEntry" Placeholder="Item name" />
             <Entry x:Name="ItemDescriptionEntry" Placeholder="Description" />
-            <Button Text="Create item" Clicked="OnCreateItemClicked"
-                    HorizontalOptions="Fill" />
-            <Button Text="Check API" Clicked="OnCheckApiClicked"
-                    HorizontalOptions="Fill" />
+            <Entry x:Name="ItemPriceEntry" Placeholder="Price" Keyboard="Numeric" />
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                <Button Grid.Column="0" Text="Create" Clicked="OnCreateItemClicked" />
+                <Button Grid.Column="1" Text="Save" Clicked="OnUpdateItemClicked" />
+            </Grid>
+            <Button Text="Cancel edit" Clicked="OnCancelEditClicked" />
+
+            <Label Text="Search and filters" FontAttributes="Bold" />
+            <Entry x:Name="SearchEntry" Placeholder="Search name or description"
+                   TextChanged="OnSearchTextChanged" />
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                <Picker x:Name="DescriptionFilterPicker"
+                        Title="Description"
+                        SelectedIndexChanged="OnFilterChanged">
+                    <Picker.Items>
+                        <x:String>Any</x:String>
+                        <x:String>Has description</x:String>
+                        <x:String>No description</x:String>
+                    </Picker.Items>
+                </Picker>
+                <Picker x:Name="SortPicker"
+                        Title="Sort"
+                        SelectedIndexChanged="OnFilterChanged">
+                    <Picker.Items>
+                        <x:String>Name A-Z</x:String>
+                        <x:String>Name Z-A</x:String>
+                        <x:String>Newest</x:String>
+                        <x:String>Oldest</x:String>
+                    </Picker.Items>
+                </Picker>
+            </Grid>
+
             <CollectionView x:Name="ItemsView">
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
-                        <VerticalStackLayout Padding="8">
-                            <Label Text="{Binding Name}" FontAttributes="Bold" />
-                            <Label Text="{Binding Description}" />
-                        </VerticalStackLayout>
+                        <Border StrokeShape="RoundRectangle 8" Padding="10" Margin="0,4">
+                            <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="4">
+                                <Label Text="{Binding Name}" FontAttributes="Bold" />
+                                <Label Grid.Row="1" Text="{Binding Description}" />
+                                <Label Grid.Row="2" Text="{Binding DisplayPrice}" />
+                                <Grid Grid.Row="3" ColumnDefinitions="*,*" ColumnSpacing="8">
+                                    <Button Grid.Column="0" Text="Edit"
+                                            Clicked="OnEditItemClicked"
+                                            CommandParameter="{Binding}" />
+                                    <Button Grid.Column="1" Text="Delete"
+                                            Clicked="OnDeleteItemClicked"
+                                            CommandParameter="{Binding}" />
+                                </Grid>
+                            </Grid>
+                        </Border>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
+
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                <Button Grid.Column="0" Text="Previous"
+                        x:Name="PreviousButton" Clicked="OnPreviousClicked" />
+                <Label Grid.Column="1" x:Name="PageLabel"
+                       Text="Page 1 of 1" HorizontalTextAlignment="Center" />
+                <Button Grid.Column="2" Text="Next"
+                        x:Name="NextButton" Clicked="OnNextClicked" />
+            </Grid>
         </VerticalStackLayout>
     </ScrollView>
 

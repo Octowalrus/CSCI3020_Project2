@@ -15,6 +15,22 @@ docker compose up --build api mongodb
 
 Open `http://localhost:8080/openapi/v1.json` for the API description.
 The item API is available at `http://localhost:8080/api/items`.
+This API creates and lists items only in the `maui_system.GameProducts` collection.
+
+The MAUI app includes a Store page with:
+
+- Available GameProducts and prices
+- Shopping-cart selection
+- A calculated cart total
+- Checkout that deletes purchased products from `GameProducts`
+
+The MAUI app supports item create, edit, delete, name/description search,
+description filtering, sorting, and paged results. The search endpoint accepts
+`search`, `hasDescription`, `sort`, `page`, and `pageSize` query parameters:
+
+```text
+GET /api/items/search?search=example&hasDescription=true&sort=name&page=1&pageSize=10
+```
 
 Example request:
 

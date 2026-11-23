@@ -13,6 +13,28 @@ public sealed class ItemsController(MongoItemStore store) : ControllerBase
         CancellationToken cancellationToken) =>
         Ok(await store.GetAllAsync(cancellationToken));
 
+    [HttpGet("search")]
+    public async Task<ActionResult<PagedResult<Item>>> Search(
+        [FromQuery] string? search,
+        [FromQuery] bool? hasDescription,
+        [FromQuery] string sort = "name",
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        pageSize = Math.Clamp(pageSize, 1, 100);
+        page = Math.Max(1, page);
+
+        var result = await store.SearchAsync(
+            search,
+            hasDescription,
+            sort,
+            page,
+            pageSize,
+            cancellationToken);
+        return Ok(result);
+    }
+
     [HttpGet("{id}")]
     public async Task<ActionResult<Item>> Get(string id, CancellationToken cancellationToken)
     {
@@ -25,6 +47,15 @@ public sealed class ItemsController(MongoItemStore store) : ControllerBase
     {
         var created = await store.CreateAsync(item, cancellationToken);
         return CreatedAtAction(nameof(Get), new { id = created.Id }, created);
+    }
+
+    [HttpPost("checkout")]
+    public async Task<ActionResult<CheckoutResult>> Checkout(
+        CheckoutRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await store.CheckoutAsync(request.ItemIds, cancellationToken);
+        return Ok(result);
     }
 
     [HttpPut("{id}")]
